@@ -39,18 +39,28 @@
 
 #if OPT_HANGMAN
 
+/* actor is the thread*/
 struct hangman_actor {
 	const char *a_name;
+        /**
+         *const struct hangman_lockable *a_waiting
+	 * is the resource
+        */
 	const struct hangman_lockable *a_waiting;
 };
 
+/* lockable is the resource */
 struct hangman_lockable {
 	const char *l_name;
+        /* thread holding the resource */
 	const struct hangman_actor *l_holding;
 };
 
+/* wait for the actor to acquire the resource */
 void hangman_wait(struct hangman_actor *a, struct hangman_lockable *l);
+/* acquire the resource */
 void hangman_acquire(struct hangman_actor *a, struct hangman_lockable *l);
+/* release the resource */
 void hangman_release(struct hangman_actor *a, struct hangman_lockable *l);
 
 #define HANGMAN_ACTOR(sym)	struct hangman_actor sym
