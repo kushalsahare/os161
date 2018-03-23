@@ -47,6 +47,8 @@ static struct spinlock hangman_lock = SPINLOCK_INITIALIZER;
  * only be waiting for one thing at a time, this turns out to be
  * quite simple.
  */
+
+/* check if the lockable (resource) is held by the actor*/
 static
 void
 hangman_check(const struct hangman_lockable *start,
@@ -54,7 +56,7 @@ hangman_check(const struct hangman_lockable *start,
 {
 	const struct hangman_actor *cur;
 
-	cur = start->l_holding;
+	cur = start->l_holding; /*actor holding the lockable start (resource)*/
 	while (cur != NULL) {
 		if (cur == target) {
 			goto found;
