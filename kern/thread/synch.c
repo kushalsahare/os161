@@ -157,6 +157,15 @@ lock_create(const char *name)
 	HANGMAN_LOCKABLEINIT(&lock->lk_hangman, lock->lk_name);
 
 	// add stuff here as needed
+	lock->lk_wchan = wchan_create(lock->lk_name);
+	if(lock->lk_chan == NULL){
+		kfree(lock->lk_name);
+		kfree(lock);
+		return NULL;
+	}
+	spinlock_init(&(lock->lk_lock));
+	lock->lk_state = 0; // unlocked
+
 
 	return lock;
 }
@@ -167,7 +176,15 @@ lock_destroy(struct lock *lock)
 	KASSERT(lock != NULL);
 
 	// add stuff here as needed
-
+	/** here idea is the same
+	 * first clean up the spinlock
+	 * wchan will assert if any thread is waiting 
+	 * destroy the wait channel
+	 * free lock name
+	 * free the lock
+	 */
+	spinlock_cleanup(&lock->lk_lock);
+	wchan_destroy(lock->lk_wchan);
 	kfree(lock->lk_name);
 	kfree(lock);
 }
@@ -179,8 +196,24 @@ lock_acquire(struct lock *lock)
 	//HANGMAN_WAIT(&curthread->t_hangman, &lock->lk_hangman);
 
 	// Write this
+	KASSERT(lock != NULL);
+	
+	spinlock_acquire(&lock->lk_lock);
+	while(1 == lock->lk_state){ // if already acquired sleep
+		wchan_sleep(lock->lock_wchan, &lock->lk_lock);
+	}
+	/* wait for the current thread's actor to acquire the resource->
+          lock's hangman_lockable */
+	HANGMAN_WAIT(&curthread->t_hangman, &lock->lk_hangman);
+        KASSERT(lock->lk_status == 0); // assert that lock is open
+	lock->lk_status = 1; //acquire lock
+        // hangman_acquire(a , l)
+        
+	HANGMAN_ACQUIRE(&curthread->t_hangman, &lock->lk_hangman);
+	spinlock_release(&lock->lk_lock);
 
-	(void)lock;  // suppress warning until code gets written
+
+	//(void)lock;  // suppress warning until code gets written
 
 	/* Call this (atomically) once the lock is acquired */
 	//HANGMAN_ACQUIRE(&curthread->t_hangman, &lock->lk_hangman);
