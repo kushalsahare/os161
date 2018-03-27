@@ -369,7 +369,7 @@ void
 locktestacquirer(void * junk, unsigned long num)
 {
   (void)junk;
-	(void)num;
+  (void)num;
 
   lock_acquire(testlock);
   V(donesem);
