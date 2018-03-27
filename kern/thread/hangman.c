@@ -57,7 +57,7 @@ hangman_check(const struct hangman_lockable *start,
 	const struct hangman_actor *cur;
 
 	cur = start->l_holding; /*actor holding the lockable start (resource)*/
-	while (cur != NULL) {
+	while (cur != NULL) { // since curr != NULL and target is found there is a cycle
 		if (cur == target) {
 			goto found;
 		}
@@ -85,12 +85,13 @@ hangman_check(const struct hangman_lockable *start,
 	kprintf("hangman: waiting for %s (%p), but:\n", start->l_name, start);
 	kprintf("   lockable %s (%p)\n", start->l_name, start);
 	cur = start->l_holding;
-	while (cur != target) {
+	while (cur != target) { // exit before cur == target
 		kprintf("   held by actor %s (%p)\n", cur->a_name, cur);
 		kprintf("   waiting for lockable %s (%p)\n",
 			cur->a_waiting->l_name, cur->a_waiting);
 		cur = cur->a_waiting->l_holding;
 	}
+        //this will give the actor holding the lock
 	kprintf("   held by actor %s (%p)\n", cur->a_name, cur);
 	panic("Deadlock.\n");
 }
@@ -111,7 +112,7 @@ hangman_check(const struct hangman_lockable *start,
 void
 hangman_wait(struct hangman_actor *a,
 	     struct hangman_lockable *l)
-{
+{ 
 	if (l == &hangman_lock.splk_hangman) {
 		/* don't recurse */
 		return;
