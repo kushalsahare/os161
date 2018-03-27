@@ -112,8 +112,14 @@ P(struct semaphore *sem)
 		 *
 		 * Exercise: how would you implement strict FIFO
 		 * ordering?
+                 * Answer: this can be implemented using another spinlock for fifo ordering.
+                 * first one in will hold the fifo lock then will sleep and release the lock
+                 * this might give us a fifo ordering? but I am not sure!
 		 */
+
+                /* spinlock_acquire(&sem->fifo_lock);*/
 		wchan_sleep(sem->sem_wchan, &sem->sem_lock);
+                /* spinlock_release(&sem->fifo_lock); */
 	}
 	KASSERT(sem->sem_count > 0);
 	sem->sem_count--;
