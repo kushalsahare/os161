@@ -46,6 +46,7 @@ struct hangman_actor {
          *const struct hangman_lockable *a_waiting
 	 * is the resource
         */
+        /* thread is waiting for only one lock */
 	const struct hangman_lockable *a_waiting;
 };
 
@@ -53,10 +54,11 @@ struct hangman_actor {
 struct hangman_lockable {
 	const char *l_name;
         /* thread holding the resource */
+        /* this is not a linked list that means only one thread can hold the lock */
 	const struct hangman_actor *l_holding;
 };
 
-/* wait for the actor to acquire the resource */
+/* wait for the actor to acquire the resource (lock)*/
 void hangman_wait(struct hangman_actor *a, struct hangman_lockable *l);
 /* acquire the resource */
 void hangman_acquire(struct hangman_actor *a, struct hangman_lockable *l);
