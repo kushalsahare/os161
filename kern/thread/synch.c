@@ -178,7 +178,6 @@ lock_destroy(struct lock *lock)
 {
 	KASSERT(lock != NULL);
         KASSERT(lock->lk_state == 0);
-	KASSERT(lock_do_i_hold(lock) == 0);
 	// add stuff here as needed
 	/** here idea is the same
 	 * first clean up the spinlock
@@ -189,12 +188,13 @@ lock_destroy(struct lock *lock)
 	 */
 
 	/* this should be here because we will free the actor holding the resource when we release the lock */
-        /* update : not sure if this assert is useful. lock may be destroyed before release? */
+        /* update 0: not sure if this assert is useful. lock may be destroyed before release? */
+        /* update 1: no! lock cannot be destroyed before release */
         KASSERT(lock->lk_thread == NULL); 
+	
 	spinlock_cleanup(&lock->lk_lock);
 	wchan_destroy(lock->lk_wchan);
 	kfree(lock->lk_name); // lock->lk_name = NULL
-        //kfree(lock->lk_thread); // solution to the update?
 	kfree(lock); //lock = NULL
 }
 
@@ -209,13 +209,16 @@ lock_acquire(struct lock *lock)
 	KASSERT(curthread->t_in_interrupt == false);
 
 	spinlock_acquire(&lock->lk_lock);
-	while(lock->lk_state == 1 && lock->lk_thread != curthread){ // if already acquired sleep
+	
+	while(lock->lk_state == 1){ // if already acquired sleep
 		wchan_sleep(lock->lk_wchan, &lock->lk_lock);
 	}
 	/* wait for the current thread's actor to acquire the resource->
           lock's hangman_lockable */
 	HANGMAN_WAIT(&curthread->t_hangman, &lock->lk_hangman);
-        KASSERT(lock->lk_state == 0); // assert that lock is open. This is to prevent recursive lock
+        
+	KASSERT(lock->lk_state == 0); // assert that lock is open. This is to prevent recursive lock
+	
 	lock->lk_state = 1; //acquire lock
         lock->lk_thread = curthread;
         // hangman_acquire(a , l)
@@ -238,17 +241,17 @@ lock_release(struct lock *lock)
 
 	// Write this
         KASSERT(lock != NULL);
-        
+     
 	/* check here if lock is held by the curthread*/
-        if(lock_do_i_hold(lock) == 0){ //acquire and release spinlock
-		return;
-	}
+	KASSERT(lock_do_i_hold(lock) == 1);
       
 	spinlock_acquire(&lock->lk_lock); //acquire
+	
 	lock->lk_state = 0; 
         lock->lk_thread = NULL;
 	HANGMAN_RELEASE(&curthread->t_hangman, &lock->lk_hangman);
 	wchan_wakeone(lock->lk_wchan, &lock->lk_lock);
+	
 	spinlock_release(&lock->lk_lock); // release
 
 	//(void)lock;  // suppress warning until code gets written
@@ -260,6 +263,7 @@ lock_do_i_hold(struct lock *lock)
         bool ret;
 	// Write this
 	KASSERT(lock != NULL);
+        KASSERT(curthread != NULL);
         /*check if the lock is held by current thread */
         spinlock_acquire(&lock->lk_lock); //acquire
         ret = (lock->lk_thread == curthread) ;
