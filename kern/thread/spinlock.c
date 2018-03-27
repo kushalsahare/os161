@@ -76,17 +76,23 @@ void
 spinlock_acquire(struct spinlock *splk)
 {
 	struct cpu *mycpu;
-
+        /**
+        * defined in spl.h
+        splraise(old, new)
+        raised the priority level to high
+        IPL_NONE 0
+        IPL_HIGH 1
+        **/
 	splraise(IPL_NONE, IPL_HIGH);
 
 	/* this must work before curcpu initialization */
-	if (CURCPU_EXISTS()) {
-		mycpu = curcpu->c_self;
-		if (splk->splk_holder == mycpu) {
+	if (CURCPU_EXISTS()) { /* curcpu != NULL */
+		mycpu = curcpu->c_self; /*point to the curcpu location*/
+		if (splk->splk_holder == mycpu) { /*spinlock holder is trying to acquire spinlock again */
 			panic("Deadlock on spinlock %p\n", splk);
 		}
-		mycpu->c_spinlocks++;
-
+		mycpu->c_spinlocks++; /*increase the number of spinlocks held by the current cpu*/
+/*put it in the deadlock graph */
 		HANGMAN_WAIT(&curcpu->c_hangman, &splk->splk_hangman);
 	}
 	else {
@@ -105,18 +111,20 @@ spinlock_acquire(struct spinlock *splk)
 		 * we don't.
 		 */
 		if (spinlock_data_get(&splk->splk_lock) != 0) {
-			continue;
+			continue; /*test if it not locked*/
 		}
 		if (spinlock_data_testandset(&splk->splk_lock) != 0) {
-			continue;
+			continue; /*test and set*/
 		}
 		break;
-	}
+	}/*spinlock is available*/
 
 	membar_store_any();
-	splk->splk_holder = mycpu;
+	splk->splk_holder = mycpu; /*if cur cpu does not exist this is nulll*/
+/*no cpu is holding this lock*/
 
 	if (CURCPU_EXISTS()) {
+             /*if curcpu exits then put it in the resource/actor graph*/
 		HANGMAN_ACQUIRE(&curcpu->c_hangman, &splk->splk_hangman);
 	}
 }
@@ -129,6 +137,7 @@ spinlock_release(struct spinlock *splk)
 {
 	/* this must work before curcpu initialization */
 	if (CURCPU_EXISTS()) {
+               /*check if the spin lock holder is curcpu*/
 		KASSERT(splk->splk_holder == curcpu->c_self);
 		KASSERT(curcpu->c_spinlocks > 0);
 		curcpu->c_spinlocks--;
