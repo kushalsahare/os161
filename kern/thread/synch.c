@@ -178,7 +178,7 @@ lock_destroy(struct lock *lock)
 {
 	KASSERT(lock != NULL);
         KASSERT(lock->lk_state == 0);
-	KASSERT(lock_do_i_hold_lock(lock) == 0);
+	KASSERT(lock_do_i_hold(lock) == 0);
 	// add stuff here as needed
 	/** here idea is the same
 	 * first clean up the spinlock
