@@ -216,13 +216,13 @@ lock_acquire(struct lock *lock)
 
 	spinlock_acquire(&lock->lk_lock);
 	
-	HANGMAN_WAIT(&curthread->t_hangman, &lock->lk_hangman);
 	while(lock->lk_state == 1){ // if already acquired sleep
 		wchan_sleep(lock->lk_wchan, &lock->lk_lock);
 	}
 	/* wait for the current thread's actor to acquire the resource->
           lock's hangman_lockable */
         
+	HANGMAN_WAIT(&curthread->t_hangman, &lock->lk_hangman);
 	KASSERT(lock->lk_state == 0); // assert that lock is open. This is to prevent recursive lock	
 	lock->lk_state = 1; //acquire lock
         KASSERT(lock->lk_thread == NULL); // redundant check but it helps
