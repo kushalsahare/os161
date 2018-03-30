@@ -80,7 +80,7 @@ struct lock {
         // (don't forget to mark things volatile as needed)
 	struct wchan *lk_wchan; // wait channel for threads
 	struct spinlock lk_lock; // spin lock for protecting data
-	volatile unsigned lk_state; // binary lock 1 or 0 
+	volatile unsigned lk_flag; // binary lock 1 or 0 
         struct thread *lk_thread; // owner of the current lock
 };
 
