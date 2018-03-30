@@ -174,7 +174,7 @@ lock_create(const char *name)
 		return NULL;
 	}
 	spinlock_init(&lock->lk_lock);
-	lock->lk_state = 0; // unlocked
+	lock->lk_flag = 0; // unlocked
 	lock->lk_thread = NULL; // current thread is NULL
 	return lock;
 }
@@ -183,7 +183,7 @@ void
 lock_destroy(struct lock *lock)
 {
 	KASSERT(lock != NULL);
-        KASSERT(lock->lk_state == 0);
+        KASSERT(lock->lk_flag == 0);
 	// add stuff here as needed
 	/** here idea is the same
 	 * first clean up the spinlock
@@ -216,15 +216,15 @@ lock_acquire(struct lock *lock)
 
 	spinlock_acquire(&lock->lk_lock);
 	
-	while(lock->lk_state == 1){ // if already acquired sleep
+	while(lock->lk_flag == 1){ // if already acquired sleep
 		wchan_sleep(lock->lk_wchan, &lock->lk_lock);
 	}
 	/* wait for the current thread's actor to acquire the resource->
           lock's hangman_lockable */
         
 	HANGMAN_WAIT(&curthread->t_hangman, &lock->lk_hangman);
-	KASSERT(lock->lk_state == 0); // assert that lock is open. This is to prevent recursive lock	
-	lock->lk_state = 1; //acquire lock
+	KASSERT(lock->lk_flag == 0); // assert that lock is open. This is to prevent recursive lock	
+	lock->lk_flag = 1; //acquire lock
         KASSERT(lock->lk_thread == NULL); // redundant check but it helps
         lock->lk_thread = curthread;
         // hangman_acquire(a , l)
@@ -255,7 +255,7 @@ lock_release(struct lock *lock)
 	
 	HANGMAN_RELEASE(&curthread->t_hangman, &lock->lk_hangman);
 	
-        lock->lk_state = 0; 
+        lock->lk_flag = 0; 
         lock->lk_thread = NULL;
 	wchan_wakeone(lock->lk_wchan, &lock->lk_lock);
 	
